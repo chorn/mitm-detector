@@ -45,7 +45,7 @@ or
 
 ## This is dumb, just use a VPN
 
-Ok that's a pretty good point.  But what if you can'?  What if you want to be able to test a network for bad things?
+Ok that's a pretty good point.  But what if you can't?  What if you want to be able to test a network for bad things?
 
 ## TODO
 
