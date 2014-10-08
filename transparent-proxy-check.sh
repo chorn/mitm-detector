@@ -28,7 +28,7 @@ declare echo_server="mitm-check.chorn.com"
 declare -i echo_port=59031
 declare -i port=80
 declare passphrase="mitm-check"
-declare -i total=3
+declare -i total=10
 
 while [[ $# -gt 1 ]] ; do
   curr_arg="$1" ; shift
@@ -76,7 +76,7 @@ echo "Default Interface: $interface"
 
 declare -i target=$(($total))
 
-if [[ $private_ip ]] ; then
+if [[ $private_ip -eq 0 ]] ; then
   echo "IPv4 Local:        $local_ip (Private Network Block, assuming NAT)"
   let target--
 elif [[ $local_ip != $internet_ip ]] ; then
@@ -99,7 +99,7 @@ $echo_server
 )
 # --bpf-filter "((src host $local_ip and dst host $echo_server) or (src host $echo_server and dst host $local_ip)) and tcp and not port $echo_port"
 
-echo "Running nping echo-client (requires sudo), this should take about 10 seconds..."
+echo "Running nping echo-client (requires sudo), this should take about $total seconds..."
 
 # Did we lose any packets?
 declare -i lost
