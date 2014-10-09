@@ -49,8 +49,16 @@ Ok that's a pretty good point.  But what if you can't?  What if you want to be a
 
 ## TODO
 
-I'd like to use the `nping` program that is part of `nmap` to detect transparent proxies.  This requires quite a bit of client/server/unix/cli know-how, and thus far just using the output from `nping` has not been easily repeatable and also parseable. 
+I think the use of `nping` to detect a transparent proxy is still the way to go.  I suspect the test should be longer running.  I know that there should be a heuristic or at least a better metric than what I've got now.
 
 I'd like to be able to run a test to see if a hop on my network, or something inside my ISP is altering the content of a webpage before I receive it.
+
+
+## Credits, Thanks, and References
+
+* [Steve Gibson](https://www.grc.com) for his SSL Fingerprinting tool.  I think his write-up on the problem is probably excellent as well.  I didn't read it of course, as soon as I saw "fingerprint" I went all neckbeard and did my own thing.
+* Apologies to everyone at @nickelcityruby, where I was a little obsessed with the transparent proxy things and had clearly left my tinfoil hat at home.
+* Thanks to @wayneeseguin, for pairing with me, being nice enough to not tell me I wasn't making a lot of sense, and not pointing out that we were deeply into doing whatever the antonym of yak shaving is.
+* I think that doing bad things with [RFC 3143](http://tools.ietf.org/html/rfc3143) might be a simpler/faster/easier/KISS approach to detecting a proxy.
 
 
