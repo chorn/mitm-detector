@@ -60,11 +60,26 @@ HTTP
 if openssl s_client -crlf -connect "${HOST}:${PORT}" -showcerts -CApath "${CAPATH}" >& "${DUMP}" < "${REQUEST}" ; then
   TRUSTED=$(openssl x509 -fingerprint -in "${CERT}" -noout)
   REMOTE=$(openssl x509 -fingerprint -in "${DUMP}" -noout)
+  CERT_COMMON_NAME=$(openssl x509 -in "${CERT}" -text -nameopt multiline -certopt no_header,no_version,no_serial,no_pubkey,no_sigdump,ext_default -noout | tr -d '\n' | sed -e 's/^.*Issuer:.*Subject:.*commonName  *=  *\([^ ]*\)  *.*$/\1/' -e 's/\./\\./g' -e 's/\*/.*/')
+  DNS_ENTRIES_REGEX=$(openssl x509 -in "${CERT}" -text -nameopt multiline -certopt no_header,no_version,no_serial,no_pubkey,no_sigdump,ext_default -noout | grep 'DNS:' | sed -e 's/DNS://g' -e 's/^  *//' -e 's/,//g' -e 's/\./\\./g' -e 's/\*/.*/g' -e 's/  */|/g')
+
+  if [[ $TRUSTED == $REMOTE ]] ; then
+    echo "OK"
+    exit 0
+  fi
+
+  if [[ $(echo $HOST | grep -cE "$CERT_COMMON_NAME") == 0 ]] ; then
+    echo "Host name doesn't match commonName: ${HOST} != ${CERT_COMMON_NAME}"
+  fi
 
   if [[ $TRUSTED != $REMOTE ]] ; then
+
+    if [[ -n $DNS_ENTRIES_REGEX && $(echo $HOST | grep -cE "$DNS_ENTRIES_REGEX") == 0 ]] ; then
+      echo "Probable Captured Network : ${HOST} != ${CERT_COMMON_NAME}"
+      exit 0
+    fi
+
     echo "Possible SSL M-I-T-M: ${TRUSTED} != ${REMOTE}"
-  else
-    echo "OK"
   fi
 
 else
