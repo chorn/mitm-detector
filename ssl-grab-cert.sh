@@ -30,7 +30,7 @@ CERT="${BASE}/certs/${HOST}.pem"
 if openssl s_client -connect "${HOST}:${PORT}" -showcerts -CApath "${CAPATH}" < /dev/null >& "${DUMP}" ; then
 	openssl x509 -in "${DUMP}" -out "${CERT}"
 	echo "Certificate written to: ${CERT}"
-	openssl x509 -issuer -subject -fingerprint -enddate -noout -in "${CERT}"
+	${BASE}/ssl-cert-info.sh "${HOST}"
 else
 	cat "${DUMP}"
 fi

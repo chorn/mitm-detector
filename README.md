@@ -7,9 +7,11 @@ These tools are intended to detect various kinds of man-in-the-middle (M-I-T-M) 
 Here are the scripts you could probably use right now:
 
 1. `ssl-grab-cert.sh` will download the SSL certificate from an HTTPS server.
-1. `ssl-mitm-check.sh` will download an SSL certificate and compare it to local, trusted copy, using fingerprints.
-
-Here are the scripts I'm working on that aren't ready for anyone else to use:
+1. `ssl-cert-info.sh` will print the interesting bits of a downloaded certificate.
+1. `ssl-mitm-check.sh`
+  1. Downloads an SSL certificate and compares it to a local, trusted copy, using fingerprints.
+  1. You should make a trusted copy of a certificate first, using `ssl-grab-cert.sh`.
+  1. Will also try to detect a captured network, wildcard certs, subjectAltNames with DNS entries, and do the right thing.
 
 1. `transparent-proxy-check.sh` has a server-side dependency to work.
 1. `content-tampering-check.sh` also has a server-side depedency.
@@ -42,6 +44,11 @@ or
     $ ./ssl-mitm-check.sh www.digitalocean.com
     Possible SSL M-I-T-M: <the fingerprint I trust> != <the fingerprint I just got>
 
+or    
+
+    $ ./ssl-mitm-check.sh www.digitalocean.com
+    Host name doesn't match commonName: www.digitalocean.com != login.my_coffee_shop_with_captured_wifi.com
+    Probable Captured Network : www.digitalocean.com != login.my_coffee_shop_with_captured_wifi.com
 
 ## This is dumb, just use a VPN
 

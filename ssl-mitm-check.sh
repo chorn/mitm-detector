@@ -57,29 +57,51 @@ Accept: */*
 
 HTTP
 
+report() {
+  local _info="$1" ; shift
+
+  while [[ $# -gt 0 ]] ; do
+    [[ -n $1 ]] && _info="${_info} -- ${1}" ; shift
+  done
+
+  echo "${_info}"
+}
+
+_EXIT_CODE=1
+
 if openssl s_client -crlf -connect "${HOST}:${PORT}" -showcerts -CApath "${CAPATH}" >& "${DUMP}" < "${REQUEST}" ; then
   TRUSTED=$(openssl x509 -fingerprint -in "${CERT}" -noout)
   REMOTE=$(openssl x509 -fingerprint -in "${DUMP}" -noout)
-  CERT_COMMON_NAME=$(openssl x509 -in "${CERT}" -text -nameopt multiline -certopt no_header,no_version,no_serial,no_pubkey,no_sigdump,ext_default -noout | tr -d '\n' | sed -e 's/^.*Issuer:.*Subject:.*commonName  *=  *\([^ ]*\)  *.*$/\1/' -e 's/\./\\./g' -e 's/\*/.*/')
-  DNS_ENTRIES_REGEX=$(openssl x509 -in "${CERT}" -text -nameopt multiline -certopt no_header,no_version,no_serial,no_pubkey,no_sigdump,ext_default -noout | grep 'DNS:' | sed -e 's/DNS://g' -e 's/^  *//' -e 's/,//g' -e 's/\./\\./g' -e 's/\*/.*/g' -e 's/  */|/g')
+  CERT_CN=$(openssl x509 -in "${CERT}" -text -nameopt multiline -certopt no_header,no_version,no_serial,no_pubkey,no_sigdump,ext_default -noout | tr -d '\n' | sed -e 's/^.*Issuer:.*Subject:.*commonName  *=  *\([^ ]*\)  *.*$/\1/')
+  CERT_CN_REGEX=$(echo "${CERT_CN}" | sed -e 's/\./\\./g' -e 's/\*/.*/')
+  CERT_CN_CHECK=$(echo $HOST | grep -cE "${CERT_CN_REGEX}")
+  CERT_DNS=$(openssl x509 -in "${CERT}" -text -nameopt multiline -certopt no_header,no_version,no_serial,no_pubkey,no_sigdump,ext_default -noout | grep 'DNS:' | sed -e 's/DNS://g' -e 's/^  *//' -e 's/,//g')
+  CERT_DNS_REGEX=""
+  CERT_DNS_CHECK=""
+  CN_INFO=""
+  DNS_INFO=""
+
+  if [[ -n $CERT_DNS ]] ; then
+    CERT_DNS_REGEX=$(echo "${CERT_DNS}" | sed -e 's/\./\\./g' -e 's/\*/.*/g' -e 's/  */|/g')
+    CERT_DNS_CHECK=$(echo $HOST | grep -cE "${CERT_DNS_REGEX}")
+  fi
+
+  if [[ $CERT_CN_CHECK == 0 && (-z $CERT_DNS || -n $CERT_DNS && $CERT_DNS_CHECK == 0)  ]] ; then
+    CN_INFO="Hostname doesn't match commonName: ${HOST} != ${CERT_CN}"
+  fi
+
+  if [[ -n $CERT_DNS && $CERT_DNS_CHECK == 0 ]] ; then
+    DNS_INFO="Hostname doesn't match subjectAltName DNS entries: ${HOST} !~ ${CERT_DNS}"
+  fi
 
   if [[ $TRUSTED == $REMOTE ]] ; then
-    echo "OK"
-    exit 0
-  fi
-
-  if [[ $(echo $HOST | grep -cE "$CERT_COMMON_NAME") == 0 ]] ; then
-    echo "Host name doesn't match commonName: ${HOST} != ${CERT_COMMON_NAME}"
-  fi
-
-  if [[ $TRUSTED != $REMOTE ]] ; then
-
-    if [[ -n $DNS_ENTRIES_REGEX && $(echo $HOST | grep -cE "$DNS_ENTRIES_REGEX") == 0 ]] ; then
-      echo "Probable Captured Network : ${HOST} != ${CERT_COMMON_NAME}"
-      exit 0
-    fi
-
-    echo "Possible SSL M-I-T-M: ${TRUSTED} != ${REMOTE}"
+    report "OK" "$CN_INFO" "$DNS_INFO"
+    _EXIT_CODE=0
+  elif [[ -n $CN_INFO && -n $DNS_INFO ]] ; then
+    report "Probable Captured Network" "$CN_INFO" "$DNS_INFO"
+    _EXIT_CODE=0
+  else
+    report "Possible SSL M-I-T-M: ${TRUSTED} != ${REMOTE}" "$CN_INFO" "$DNS_INFO"
   fi
 
 else
@@ -88,4 +110,6 @@ fi
 
 [[ -f "${DUMP}" ]] && rm "${DUMP}"
 [[ -f "${REQUEST}" ]] && rm "${REQUEST}"
+
+exit $_EXIT_CODE
 
